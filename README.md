@@ -1,7 +1,7 @@
 # 🏆 tttarena
 
 [![PyPI version](https://badge.fury.io/py/tttarena.svg)](https://pypi.org/project/tttarena/)
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/your-org/tttarena/blob/main/baseline.ipynb)
+[![Colab](https://colab.research.google.com/assets/colab-badge.svg)]([https://colab.research.google.com/github/your-org/tttarena/blob/main/baseline.ipynb](https://colab.research.google.com/github/naereni/tttarena/blob/main/baseline.ipynb))
 [![Kaggle](https://img.shields.io/badge/Kaggle-Notebook-blue)](https://www.kaggle.com/your-notebook-link)
 
 Детерминированный, пошаговый движок для симуляции игры в Тетрис с уникальными механиками. Проект предназначен для разработки ИИ-ботов, балансирующих между набором очков и минимизацией отклонения от динамически изменяющейся "целевой кривой".
