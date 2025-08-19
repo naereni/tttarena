@@ -69,8 +69,6 @@ class PygameVisualizer(BaseVisualizer):
     def _draw_board(self):
         """Рисует ячейки на игровом поле."""
         board = self.game_state.get("board", [])
-        if not board:
-            return
 
         for y, row in enumerate(board):
             for x, cell_value in enumerate(row):

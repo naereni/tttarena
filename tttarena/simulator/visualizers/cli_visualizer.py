@@ -64,7 +64,7 @@ class CliVisualizer(BaseVisualizer):
         print(f"RPS: {rps:.2f}")
 
     def get_speed_delay(self) -> float:
-        return 0.05 
+        return 0.00
 
     def is_running(self) -> bool:
         return self.running

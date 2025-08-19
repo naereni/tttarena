@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Optional
 import time
+from tqdm.auto import tqdm
 
 from ..engine.core.engine import TetrisEngine
 from ..engine.core.exceptions import GameOver, NoValidMovesError
@@ -29,77 +30,93 @@ class SimulationRunner:
         total_lines_cleared = 0
         total_error_A = 0.0
 
-        while not self.engine.game_over:
-            if visualizer and not visualizer.is_running():
-                break
+        if visualizer:
+            class DummyPbar:
+                def __enter__(self):
+                    return self
+                def __exit__(self, exc_type, exc_val, exc_tb):
+                    pass
+                def update(self, n=1):
+                    pass
+                def set_postfix(self, ordered_dict=None, refresh=True):
+                    pass
+            pbar_context = DummyPbar()
+        else:
+            pbar_context = tqdm(total=100000, desc="Simulating Game")
 
-            current_piece = self.engine.current_piece_type
-            if current_piece is None:
-                break
+        with pbar_context as pbar:
+            while not self.engine.game_over:
+                if visualizer and not visualizer.is_running():
+                    break
 
-            try:
-                best_x, best_rot = self.bot.find_best_move(self.engine)
-            except NoValidMovesError as e:
-                print(f"Игра окончена: {e}")
-                self.engine.game_over = True
-                break
-            except Exception as e:
-                print(f"Ошибка в работе бота: {e}")
-                self.engine.game_over = True
-                break
+                current_piece = self.engine.current_piece_type
+                if current_piece is None:
+                    break
 
-            try:
-                lines_cleared = self.engine.place_piece(best_x, best_rot)
-                total_lines_cleared += lines_cleared
-                current_error = self.engine.get_approximation_error()
-                total_error_A += current_error
+                try:
+                    best_x, best_rot = self.bot.find_best_move(self.engine)
+                except NoValidMovesError as e:
+                    print(f"Игра окончена: {e}")
+                    self.engine.game_over = True
+                    break
+                except Exception as e:
+                    print(f"Ошибка в работе бота: {e}")
+                    self.engine.game_over = True
+                    break
 
-                piece_count += 1
+                try:
+                    lines_cleared = self.engine.place_piece(best_x, best_rot)
+                    total_lines_cleared += lines_cleared
+                    current_error = self.engine.get_approximation_error()
+                    total_error_A += current_error
 
-                
-                elapsed_time = time.time() - start_time
-                rps = piece_count / elapsed_time if elapsed_time > 0 else 0.0
-                percentage = (piece_count / 100000) * 100
-                print(f"Фигура: {piece_count}, Прогресс: {percentage:.2f}%, RPS: {rps:.2f}", end='\r')
-
-                step_info = {
-                    "piece_index": piece_count,
-                    "piece_type": current_piece,
-                    "move": (best_x, best_rot),
-                    "lines_cleared": lines_cleared,
-                    "score": self.engine.score,
-                }
-                self.history.append(step_info)
-
-                
-                if visualizer:
-                    state_for_visualizer = self.engine.get_game_state()
-                    state_for_visualizer["error_A"] = current_error
-                    state_for_visualizer["total_lines_cleared"] = total_lines_cleared
-                    state_for_visualizer["piece_index"] = piece_count
+                    piece_count += 1
+                    if piece_count >= 100000:
+                        break
 
                     elapsed_time = time.time() - start_time
                     rps = piece_count / elapsed_time if elapsed_time > 0 else 0.0
-                    state_for_visualizer["rps"] = rps
+                    
+                    pbar.update(1)
 
-                    visualizer.handle_events()
-                    visualizer.update_state(state_for_visualizer)
-                    visualizer.render()
+                    step_info = {
+                        "piece_index": piece_count,
+                        "piece_type": current_piece,
+                        "move": (best_x, best_rot),
+                        "lines_cleared": lines_cleared,
+                        "score": self.engine.score,
+                    }
+                    self.history.append(step_info)
 
-                    sleep_duration = visualizer.get_speed_delay()
-                    if sleep_duration > 0:
-                        time.sleep(sleep_duration)
+                    
+                    if visualizer:
+                        state_for_visualizer = self.engine.get_game_state()
+                        state_for_visualizer["error_A"] = current_error
+                        state_for_visualizer["total_lines_cleared"] = total_lines_cleared
+                        state_for_visualizer["piece_index"] = piece_count
 
-            except GameOver as e:
-                print(f"Игра окончена: {e}")
-                break
-            except Exception as e:
-                print(f"Критическая ошибка движка: {e}")
-                self.engine.game_over = True
-                break
-        
-        if visualizer:
-            visualizer.quit()
+                        elapsed_time = time.time() - start_time
+                        rps = piece_count / elapsed_time if elapsed_time > 0 else 0.0
+                        state_for_visualizer["rps"] = rps
+
+                        visualizer.handle_events()
+                        visualizer.update_state(state_for_visualizer)
+                        visualizer.render()
+
+                        sleep_duration = visualizer.get_speed_delay()
+                        if sleep_duration > 0:
+                            time.sleep(sleep_duration)
+
+                except GameOver as e:
+                    print(f"Игра окончена: {e}")
+                    break
+                except Exception as e:
+                    print(f"Критическая ошибка движка: {e}")
+                    self.engine.game_over = True
+                    break
+            
+            if visualizer:
+                visualizer.quit()
 
         final_error_A = total_error_A / piece_count if piece_count > 0 else 0.0
         final_score_S = self.engine.score
